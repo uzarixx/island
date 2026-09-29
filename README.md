@@ -10,6 +10,7 @@
 <p align="center">
   <a href="../../releases/latest"><b>Download</b></a> ·
   <a href="#build-from-source">Build from source</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
   <a href="README.ru.md">Русский</a>
 </p>
 
@@ -17,12 +18,14 @@
 
 ## Features
 
-**Music.** Spotify player with queue, your playlists and search. Pick a song inside a playlist
-and it plays on from there. The equalizer takes its colors from the album cover, and can follow
-the real sound.
+**Music.** Controls Spotify and Apple Music, following whichever is playing: the cover, seeking,
+volume, shuffle, repeat, likes and favorites. Connect Spotify for the queue, your playlists and
+search too; pick a song inside a playlist and it plays on from there. The equalizer takes its
+colors from the album cover, and can follow the real sound.
 
 **Shelf.** Drag files toward the notch and it opens right onto the shelf. Keep them there, then
 drag them out one by one or all at once, send them over AirDrop, zip them, preview with Quick Look.
+Paste a screenshot or anything else from the clipboard with <kbd>⌘</kbd><kbd>V</kbd>.
 
 <p align="center"><img src="docs/images/shelf.png" alt="Shelf" width="80%"></p>
 
@@ -55,8 +58,8 @@ island sits at the top of the menu bar.
 
 ## Spotify
 
-Island controls the Spotify app directly. The queue, playlists, search and likes use the Spotify
-Web API with your own key:
+Island controls the Spotify app directly, like Apple Music. The queue, playlists, search and likes
+use the Spotify Web API with your own key:
 
 1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).
 2. Add the redirect URI `http://127.0.0.1:43821/callback` and enable the Web API.
@@ -71,10 +74,12 @@ that needs it:
 | Permission | Used for |
 | --- | --- |
 | Accessibility | three-finger middle click |
-| Automation → Spotify | playback control |
+| Automation → Spotify, Music | playback control |
 | Calendars | meetings from Calendar |
 | Microphone | voice notes |
-| System audio recording | the live equalizer (off by default, Spotify only, nothing recorded) |
+| System audio recording | the live equalizer (off by default, the music app only, nothing recorded) |
+
+The details, and how to remove everything Island keeps: [Privacy Policy](PRIVACY.md).
 
 ## Build from source
 
@@ -82,9 +87,13 @@ Needs the Xcode Command Line Tools (`xcode-select --install`).
 
 ```sh
 scripts/create-signing-identity.sh   # once: keeps permissions across rebuilds
-./build.sh --run                     # build/Island.app, and launch it
+scripts/build.sh --run               # build/Island.app, and launch it
 scripts/make-dmg.sh                  # build/Island-<version>.dmg for Apple Silicon and Intel
+scripts/make-dmg.sh minor            # the same, with the version raised first (or patch, major, 1.2.0)
+scripts/version.sh                   # the current version
 ```
+
+Raising the version also moves the Unreleased part of [CHANGELOG.md](CHANGELOG.md) under it.
 
 ## License
 

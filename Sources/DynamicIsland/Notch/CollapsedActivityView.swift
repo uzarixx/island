@@ -3,7 +3,7 @@ import SwiftUI
 /// Compact state: something on each side of the camera, like the iPhone's Dynamic Island.
 struct CollapsedActivityView: View {
     let activity: CollapsedActivity
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     let sideWidth: CGFloat
 
     var body: some View {
@@ -18,7 +18,7 @@ struct CollapsedActivityView: View {
     private var leading: some View {
         switch activity {
         case .music:
-            ArtworkView(image: spotify.artwork, cornerRadius: 4)
+            ArtworkView(image: player.artwork, cornerRadius: 4)
                 .frame(width: 18, height: 18)
         case .battery(let event):
             BatteryGlyph(event: event)
@@ -36,7 +36,7 @@ struct CollapsedActivityView: View {
     private var trailing: some View {
         switch activity {
         case .music:
-            EqualizerView(isAnimating: spotify.isPlaying, colors: spotify.artworkColors)
+            EqualizerView(isAnimating: player.isPlaying, colors: player.artworkColors)
         case .battery(let event):
             BatteryPercent(event: event)
         case .recording(let since):

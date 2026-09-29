@@ -138,6 +138,51 @@ final class ShelfStore: ObservableObject {
         return accepted
     }
 
+    /// Takes what's on the clipboard: files copied in Finder, a screenshot (⌃⇧⌘4) or a copied
+    /// picture, a link or text. Returns false when there's nothing to take.
+    @discardableResult
+    func paste(from pasteboard: NSPasteboard = .general) -> Bool {
+        let files = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        if !files.isEmpty {
+            files.forEach { addFile($0) }
+            return true
+        }
+        // Screenshots come as PNG; pictures copied from apps often only as TIFF.
+        if let png = pasteboard.data(forType: .png) {
+            addImage(png, type: .png, name: Self.pastedImageName())
+            return true
+        }
+        if let tiff = pasteboard.data(forType: .tiff),
+           let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            addImage(png, type: .png, name: Self.pastedImageName())
+            return true
+        }
+        if let url = (pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL])?.first, url.scheme?.hasPrefix("http") == true {
+            insert(ShelfItem(content: .link(url)))
+            return true
+        }
+        if let text = pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+            if let url = URL(string: text), url.scheme?.hasPrefix("http") == true, url.host != nil, !text.contains(" ") {
+                insert(ShelfItem(content: .link(url)))
+            } else {
+                insert(ShelfItem(content: .text(text)))
+            }
+            return true
+        }
+        return false
+    }
+
+    /// "Снимок экрана 2026-09-30 в 12.34.56", like the screenshots macOS saves.
+    private static func pastedImageName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let day = formatter.string(from: Date())
+        formatter.dateFormat = "HH.mm.ss"
+        let time = formatter.string(from: Date())
+        // With the extension: `addImage` drops it, and would take ".56" for one.
+        return L("Снимок экрана \(day) в \(time).png", "Screenshot \(day) at \(time).png")
+    }
+
     func addFile(_ url: URL, isOwned: Bool = false) {
         // The same file again just comes to the front.
         if let existing = items.first(where: { locations[$0.id]?.standardizedFileURL == url.standardizedFileURL }) {

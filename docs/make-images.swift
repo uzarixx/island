@@ -394,7 +394,7 @@ struct CollapsedPill<Leading: View, Trailing: View>: View {
         }
         .padding(.horizontal, 6)
         .frame(width: 185 + side * 2 + 12, height: 32)
-        .background(NotchShape(topRadius: 6, bottomRadius: 10).fill(.black))
+        .background(NotchShape(topRadius: 0, bottomRadius: 10).fill(.black))
     }
 }
 
@@ -469,10 +469,14 @@ struct States: View {
                     }
                 }
                 state("Color picked") {
-                    CollapsedPill(side: 76) {
+                    CollapsedPill(side: 40) {
                         Circle().fill(Color(red: 0.13, green: 0.83, blue: 0.93)).overlay(Circle().stroke(.white.opacity(0.3))).frame(width: 16)
                     } trailing: {
+                        // Wider than the side: grows toward the camera, ending where the texts above do.
                         Text("#22D3EE").font(.system(size: 11, weight: .semibold).monospaced()).foregroundStyle(.white)
+                            .fixedSize()
+                            .frame(width: 40, alignment: .trailing)
+                            .padding(.trailing, 10)
                     }
                 }
             }

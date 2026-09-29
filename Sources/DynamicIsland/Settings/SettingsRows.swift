@@ -204,12 +204,9 @@ struct LinkSettingsRow: View {
             Spacer()
             Button { store.open(link) } label: { Image(systemName: "arrow.up.forward.app") }
                 .help(L("Открыть", "Open"))
-            Button { store.move(link, by: -1) } label: { Image(systemName: "chevron.up") }
-                .disabled(store.items.first == link)
-            Button { store.move(link, by: 1) } label: { Image(systemName: "chevron.down") }
-                .disabled(store.items.last == link)
             Button { store.remove(link) } label: { Image(systemName: "trash") }
                 .help(L("Удалить", "Delete"))
+            DragHandle()
         }
         .buttonStyle(.borderless)
     }
@@ -232,12 +229,9 @@ struct ChatSettingsRow: View {
             Spacer()
             Button { store.open(chat) } label: { Image(systemName: "arrow.up.forward.app") }
                 .help(L("Открыть", "Open"))
-            Button { store.move(chat, by: -1) } label: { Image(systemName: "chevron.up") }
-                .disabled(store.items.first == chat)
-            Button { store.move(chat, by: 1) } label: { Image(systemName: "chevron.down") }
-                .disabled(store.items.last == chat)
             Button { store.remove(chat) } label: { Image(systemName: "trash") }
                 .help(L("Удалить", "Delete"))
+            DragHandle()
         }
         .buttonStyle(.borderless)
     }
@@ -249,9 +243,7 @@ struct TabSettingsRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: tab.icon)
-                .frame(width: 20)
-                .foregroundStyle(settings.isVisible(tab) ? .primary : .tertiary)
+            SettingsIcon(symbol: tab.icon, color: settings.isVisible(tab) ? .accentColor : .gray)
             Text(tab.title)
                 .foregroundStyle(settings.isVisible(tab) ? .primary : .secondary)
             if tab == .battery, !BattController.isInstalled {
@@ -260,17 +252,28 @@ struct TabSettingsRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button { settings.move(tab, by: -1) } label: { Image(systemName: "chevron.up") }
-                .disabled(settings.order.first == tab)
-            Button { settings.move(tab, by: 1) } label: { Image(systemName: "chevron.down") }
-                .disabled(settings.order.last == tab)
             Toggle("", isOn: Binding(get: { settings.isVisible(tab) }, set: { settings.setVisible(tab, $0) }))
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .disabled(settings.isVisible(tab) && !settings.canHide(tab))
                 .help(settings.canHide(tab) || !settings.isVisible(tab) ? L("Показывать в челке", "Show in the notch") : L("Хотя бы одна вкладка должна остаться", "At least one tab must stay visible"))
+            DragHandle()
         }
         .buttonStyle(.borderless)
+    }
+}
+
+/// A symbol on a colored rounded square, like the icons in System Settings.
+struct SettingsIcon: View {
+    let symbol: String
+    let color: Color
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
     }
 }

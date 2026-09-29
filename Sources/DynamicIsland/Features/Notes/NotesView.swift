@@ -175,7 +175,9 @@ private struct MemoChip: View {
         .notchGlass(in: Capsule(), interactive: true)
         .contentShape(Capsule())
         .onTapGesture(perform: play)
-        .onDrag { NSItemProvider(contentsOf: memo.url) ?? NSItemProvider() }
+        .onDrag { NSItemProvider(contentsOf: memo.url) ?? NSItemProvider() } preview: {
+            DragPreview(symbol: "waveform", title: "\(label) · \(formatTime(memo.duration))")
+        }
         .onHover { isHovering = $0 }
         .help(L("Клик — прослушать, перетащи в чат — отправить файл", "Click to play, drag to a chat to send the file"))
     }

@@ -77,18 +77,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openSettings() {
         notch.collapse()
         if settingsWindow == nil {
-            let window = NSWindow(
-                contentRect: .zero,
-                styleMask: [.titled, .closable, .miniaturizable],
-                backing: .buffered,
-                defer: false
-            )
+            // A hosting controller rather than a view: the sidebar and the pane titles live in the
+            // window's toolbar, which only a controller hands over to SwiftUI.
+            let root = SettingsView(auth: model.auth, chats: model.chats, links: model.links, calendar: model.meetings.calendar)
+            let window = NSWindow(contentViewController: NSHostingController(rootView: root))
+            // Like System Settings: the sidebar runs to the top, under the window buttons.
+            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+            window.toolbarStyle = .unified
             window.title = L("Island — настройки", "Island Settings")
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: SettingsView(auth: model.auth, chats: model.chats, links: model.links, calendar: model.meetings.calendar))
-            window.setContentSize(NSSize(width: 540, height: 640))
             window.sharingType = AppSettings.windowSharingType
             window.center()
+            // The app has no other windows to type into: left active, every key press would beep.
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+                DispatchQueue.main.async { NSApp.deactivate() }
+            }
             settingsWindow = window
         }
         NSApp.activate()

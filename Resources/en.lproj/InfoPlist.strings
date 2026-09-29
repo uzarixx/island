@@ -1,7 +1,7 @@
 /* Permission prompts shown by macOS. */
 
 "NSMicrophoneUsageDescription" = "Used for voice notes.";
-"NSAudioCaptureUsageDescription" = "Lets the equalizer on the island move to the music playing in Spotify. Nothing is recorded.";
+"NSAudioCaptureUsageDescription" = "Lets the equalizer on the island move to the music playing in Spotify or Apple Music. Nothing is recorded.";
 "NSCalendarsFullAccessUsageDescription" = "Shows meetings from Calendar and reminds you about them. Events are only read and never leave your Mac.";
 "NSCalendarsUsageDescription" = "Shows meetings from Calendar and reminds you about them. Events are only read and never leave your Mac.";
-"NSAppleEventsUsageDescription" = "Used to control playback in Spotify.";
+"NSAppleEventsUsageDescription" = "Used to control playback in Spotify and Apple Music.";

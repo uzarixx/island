@@ -25,7 +25,7 @@ final class QueueController: ObservableObject {
     @Published private(set) var upcoming: [QueueTrack] = []
 
     let auth: SpotifyAuth
-    private let spotify: SpotifyController
+    private let player: PlayerController
     private let api: SpotifyWebAPI
     private var isActive = false
     private var loadTask: Task<Void, Never>?
@@ -33,14 +33,14 @@ final class QueueController: ObservableObject {
 
     static let currentID = "current"
 
-    init(auth: SpotifyAuth, spotify: SpotifyController) {
+    init(auth: SpotifyAuth, player: PlayerController) {
         self.auth = auth
-        self.spotify = spotify
+        self.player = player
         self.api = SpotifyWebAPI(auth: auth)
         // Earlier versions kept a playback history here.
         UserDefaults.standard.removeObject(forKey: "playbackHistory")
 
-        spotify.$track
+        player.$track
             .map { $0?.id }
             .removeDuplicates()
             .dropFirst()
@@ -60,7 +60,7 @@ final class QueueController: ObservableObject {
 
     /// The current track (from AppleScript, so it's always up to date), then the queue.
     var items: [QueueTrack] {
-        guard let current = spotify.track else { return upcoming }
+        guard let current = player.track else { return upcoming }
         let now = QueueTrack(
             id: Self.currentID,
             uri: current.id,
@@ -95,7 +95,7 @@ final class QueueController: ObservableObject {
 
     /// Jumps to a queued track, like clicking it in Spotify.
     func play(_ track: QueueTrack) {
-        spotify.skip(times: track.skips)
+        player.skip(times: track.skips)
     }
 
     // MARK: - Private
@@ -119,7 +119,7 @@ final class QueueController: ObservableObject {
             guard !Task.isCancelled else { return }
 
             // The Web API may still report the previous track; that list would be off by one.
-            if let current = spotify.track?.id, let reported = response.currentlyPlaying?.uri, reported != current {
+            if let current = player.track?.id, let reported = response.currentlyPlaying?.uri, reported != current {
                 if attempt < 4 {
                     try await Task.sleep(for: .seconds(1))
                     await load(attempt: attempt + 1)

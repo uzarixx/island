@@ -48,9 +48,10 @@ final class TabSettings: ObservableObject {
         UserDefaults.standard.set(hidden.map(\.rawValue).sorted(), forKey: Self.hiddenKey)
     }
 
-    func move(_ tab: NotchTab, by offset: Int) {
-        guard let index = order.firstIndex(of: tab), order.indices.contains(index + offset) else { return }
-        order.swapAt(index, index + offset)
+    /// Puts `tab` where `target` is (drag and drop in Settings).
+    func move(_ tab: NotchTab, to target: NotchTab) {
+        guard tab != target, let from = order.firstIndex(of: tab), let to = order.firstIndex(of: target) else { return }
+        order.insert(order.remove(at: from), at: to)
         save()
     }
 

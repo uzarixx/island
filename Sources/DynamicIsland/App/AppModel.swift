@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class AppModel {
     let auth = SpotifyAuth()
-    let spotify: SpotifyController
+    let player: PlayerController
     let queue: QueueController
     let library: LibraryController
     let chats = ChatStore()
@@ -17,9 +17,9 @@ final class AppModel {
     let batt = BattController()
 
     init() {
-        spotify = SpotifyController(auth: auth)
-        queue = QueueController(auth: auth, spotify: spotify)
-        library = LibraryController(auth: auth, spotify: spotify)
+        player = PlayerController(auth: auth)
+        queue = QueueController(auth: auth, player: player)
+        library = LibraryController(auth: auth, player: player)
     }
 
     /// Saves what's still in memory and cleans up before the app quits.

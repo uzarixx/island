@@ -14,7 +14,7 @@ final class NotchController {
     private let keyHandoff = KeyHandoffPanel()
     private lazy var keyboard = NotchKeyboard(
         viewModel: viewModel,
-        spotify: model.spotify,
+        player: model.player,
         chats: model.chats,
         links: model.links,
         meetings: model.meetings,
@@ -22,7 +22,7 @@ final class NotchController {
         shelf: model.shelf,
         close: { [weak self] in self?.setExpanded(false) }
     )
-    private lazy var gestures = NotchGestures(spotify: model.spotify) { [weak self] volume in
+    private lazy var gestures = NotchGestures(player: model.player) { [weak self] volume in
         self?.showVolumeFeedback(volume)
     }
     private var powerMonitor: PowerMonitor?
@@ -131,15 +131,17 @@ final class NotchController {
     // MARK: - Model
 
     private func observeModel() {
-        let spotify = model.spotify
-        spotify.$isPlaying
-            .combineLatest(spotify.$track)
-            .map { isPlaying, track in isPlaying && track != nil }
+        let player = model.player
+        player.$isPlaying
+            .combineLatest(player.$track, player.$app)
+            .map { isPlaying, track, app -> LiveMusic in LiveMusic(isActive: isPlaying && track != nil, app: app) }
             .removeDuplicates()
-            .sink { [weak self] active in
+            .sink { [weak self] (music: LiveMusic) in
+                let active = music.isActive
+                let app = music.app
                 withAnimation(NotchViewModel.animation) { self?.viewModel.hasLiveActivity = active }
                 // The equalizer can follow the real sound only while there is some.
-                AudioLevelMeter.shared.setPlaying(active)
+                AudioLevelMeter.shared.setPlaying(active, bundleID: app.bundleID)
             }
             .store(in: &cancellables)
 
@@ -333,16 +335,32 @@ final class NotchController {
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
-        viewModel.isExpanded && panel.isKeyWindow && keyboard.handle(event)
+        if !viewModel.isExpanded, event.window === panel || (NSApp.isActive && !hasOtherVisibleWindows) {
+            // The keyboard is stuck with us though the notch is closed: nothing here would take
+            // the key and it would only beep. Give the keyboard back; this one key press is lost.
+            releaseKeyboard()
+            return true
+        }
+        return viewModel.isExpanded && panel.isKeyWindow && keyboard.handle(event)
+    }
+
+    /// Settings, the AirDrop sheet: windows of ours the keyboard may rightly be in.
+    private var hasOtherVisibleWindows: Bool {
+        NSApp.windows.contains { $0.isVisible && $0 !== panel && $0 !== keyHandoff && $0.canBecomeKey }
     }
 
     /// Gives key status to the app the user was working in again (the notch never activates the
     /// app, so that app stayed active), via an invisible panel so the notch doesn't blink:
     /// with music playing, its artwork and equalizer would flicker.
     private func releaseKeyboard() {
-        guard panel.isKeyWindow, !viewModel.isExpanded else { return }
-        keyHandoff.makeKeyAndOrderFront(nil)
-        keyHandoff.orderOut(nil)
+        guard !viewModel.isExpanded else { return }
+        if panel.isKeyWindow {
+            keyHandoff.makeKeyAndOrderFront(nil)
+            keyHandoff.orderOut(nil)
+        }
+        // Settings or the AirDrop sheet activated the app; once they're gone it would stay
+        // active with no window, and typing would only beep.
+        if NSApp.isActive, !hasOtherVisibleWindows { NSApp.deactivate() }
     }
 
     // MARK: - Opening and closing
@@ -435,9 +453,10 @@ final class NotchController {
         withAnimation(expanded ? NotchViewModel.openAnimation : NotchViewModel.closeAnimation) {
             viewModel.isExpanded = expanded
         }
-        // Collapsed notch must not swallow clicks aimed at the menu bar.
+        // Collapsed notch must not swallow clicks aimed at the menu bar, nor keep the keyboard.
         panel.ignoresMouseEvents = !expanded
-        model.spotify.setActive(expanded)
+        panel.allowsKey = expanded
+        model.player.setActive(expanded)
         if !expanded {
             // After the close animation: a form closing mid-animation would still take the keys.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -445,6 +464,12 @@ final class NotchController {
             }
         }
     }
+}
+
+/// Music is playing, and in which app.
+private struct LiveMusic: Equatable {
+    let isActive: Bool
+    let app: MusicApp
 }
 
 /// Lets the first click on a button work even though the app is never active.

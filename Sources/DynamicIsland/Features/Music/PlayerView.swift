@@ -1,23 +1,25 @@
 import SwiftUI
 
 struct PlayerView: View {
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
+    /// The whole tab to itself (no queue next to it): a bigger cover.
+    var isWide = false
 
     var body: some View {
         Group {
-            if !spotify.isRunning {
-                MessageView(icon: "music.note", text: L("Spotify не запущен", "Spotify isn’t running"), action: L("Открыть Spotify", "Open Spotify")) {
-                    spotify.openSpotify()
+            if !player.isRunning {
+                MessageView(icon: "music.note", text: L("\(player.app.name) не запущен", "\(player.app.name) isn’t running"), action: L("Открыть \(player.app.name)", "Open \(player.app.name)")) {
+                    player.openApp()
                 }
-            } else if spotify.permissionDenied {
+            } else if player.permissionDenied {
                 MessageView(
                     icon: "lock.fill",
-                    text: L("Нет доступа к управлению Spotify", "No permission to control Spotify"),
+                    text: L("Нет доступа к управлению \(player.app.name)", "No permission to control \(player.app.name)"),
                     action: L("Открыть настройки", "Open Settings")
                 ) {
-                    spotify.openAutomationSettings()
+                    player.openAutomationSettings()
                 }
-            } else if let track = spotify.track {
+            } else if let track = player.track {
                 trackView(track)
             } else {
                 MessageView(icon: "music.note", text: L("Сейчас ничего не играет", "Nothing is playing"), action: nil, perform: {})
@@ -26,12 +28,12 @@ struct PlayerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func trackView(_ track: SpotifyTrack) -> some View {
+    private func trackView(_ track: Track) -> some View {
         HStack(spacing: 16) {
-            ArtworkView(image: spotify.artwork, cornerRadius: 14)
-                .frame(width: 96, height: 96)
-                .scaleEffect(spotify.isPlaying ? 1 : 0.92)
-                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: spotify.isPlaying)
+            ArtworkView(image: player.artwork, cornerRadius: 14)
+                .frame(width: isWide ? 120 : 96, height: isWide ? 120 : 96)
+                .scaleEffect(player.isPlaying ? 1 : 0.92)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: player.isPlaying)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top, spacing: 6) {
@@ -45,14 +47,14 @@ struct PlayerView: View {
                     }
                     .lineLimit(1)
                     Spacer(minLength: 0)
-                    if spotify.canLike {
-                        LikeButton(isLiked: spotify.isLiked, action: spotify.toggleLike)
-                    } else if spotify.showsLike {
-                        LikeButton(isLiked: nil, needsReconnect: true, action: spotify.reconnectForLikes)
+                    if player.canLike {
+                        LikeButton(isLiked: player.isLiked, app: player.app, action: player.toggleLike)
+                    } else if player.showsLike {
+                        LikeButton(isLiked: nil, app: player.app, needsReconnect: true, action: player.reconnectForLikes)
                     }
                 }
 
-                ProgressSection(spotify: spotify, duration: track.duration)
+                ProgressSection(player: player, duration: track.duration)
                     .padding(.top, 4)
 
                 controls
@@ -65,15 +67,15 @@ struct PlayerView: View {
 
     private var volumeControl: some View {
         HStack(spacing: 6) {
-            Button { spotify.setVolume(spotify.volume == 0 ? 50 : 0) } label: {
-                Image(systemName: spotify.volume == 0 ? "speaker.slash.fill" : "speaker.fill")
+            Button { player.setVolume(player.volume == 0 ? 50 : 0) } label: {
+                Image(systemName: player.volume == 0 ? "speaker.slash.fill" : "speaker.fill")
                     .frame(width: 12)
             }
             .buttonStyle(.plain)
-            .help(spotify.volume == 0 ? L("Включить звук", "Unmute") : L("Выключить звук", "Mute"))
+            .help(player.volume == 0 ? L("Включить звук", "Unmute") : L("Выключить звук", "Mute"))
 
-            SeekBar(progress: Double(spotify.volume) / 100) { fraction in
-                spotify.setVolume(Int((fraction * 100).rounded()))
+            SeekBar(progress: Double(player.volume) / 100) { fraction in
+                player.setVolume(Int((fraction * 100).rounded()))
             }
 
             Image(systemName: "speaker.wave.3.fill")
@@ -84,39 +86,39 @@ struct PlayerView: View {
 
     private var controls: some View {
         HStack(spacing: 0) {
-            ModeButton(systemName: "shuffle", isOn: spotify.isShuffling, help: shuffleHelp) {
-                spotify.toggleShuffle()
+            ModeButton(systemName: "shuffle", isOn: player.isShuffling, help: shuffleHelp) {
+                player.toggleShuffle()
             }
             .frame(maxWidth: .infinity)
-            ControlButton(systemName: "backward.fill", size: 16) { spotify.previousTrack() }
+            ControlButton(systemName: "backward.fill", size: 16) { player.previousTrack() }
                 .frame(maxWidth: .infinity)
-            ControlButton(systemName: spotify.isPlaying ? "pause.fill" : "play.fill", size: 18, isProminent: true) {
-                spotify.playPause()
+            ControlButton(systemName: player.isPlaying ? "pause.fill" : "play.fill", size: 18, isProminent: true) {
+                player.playPause()
             }
             .frame(maxWidth: .infinity)
-            ControlButton(systemName: "forward.fill", size: 16) { spotify.nextTrack() }
+            ControlButton(systemName: "forward.fill", size: 16) { player.nextTrack() }
                 .frame(maxWidth: .infinity)
             ModeButton(
-                systemName: spotify.repeatMode == .track ? "repeat.1" : "repeat",
-                isOn: spotify.repeatMode != .off,
+                systemName: player.repeatMode == .track ? "repeat.1" : "repeat",
+                isOn: player.repeatMode != .off,
                 help: repeatHelp
             ) {
-                spotify.cycleRepeatMode()
+                player.cycleRepeatMode()
             }
             .frame(maxWidth: .infinity)
         }
     }
 
     private var shuffleHelp: String {
-        spotify.isShuffling ? L("Перемешивание включено", "Shuffle is on") : L("Перемешивать", "Shuffle")
+        player.isShuffling ? L("Перемешивание включено", "Shuffle is on") : L("Перемешивать", "Shuffle")
     }
 
     private var repeatHelp: String {
-        switch spotify.repeatMode {
+        switch player.repeatMode {
         case .off:
             return L("Повторять плейлист", "Repeat playlist")
         case .context:
-            return spotify.canRepeatTrack
+            return player.canRepeatTrack
                 ? L("Повторять трек", "Repeat track")
                 : L("Выключить повтор. Повтор трека — переподключи Spotify в настройках", "Turn off repeat. To repeat a track, reconnect Spotify in Settings")
         case .track:
@@ -125,10 +127,11 @@ struct PlayerView: View {
     }
 }
 
-/// Heart like in Spotify: adds the track to "Liked Songs". Dimmed while the state is loading,
+/// Heart: Spotify's "Liked Songs" or Apple Music's favorites. Dimmed while the state is loading,
 /// or when Spotify has to be reconnected for it.
 private struct LikeButton: View {
     let isLiked: Bool?
+    let app: MusicApp
     var needsReconnect = false
     let action: () -> Void
 
@@ -146,11 +149,21 @@ private struct LikeButton: View {
         }
         .buttonStyle(PressableButtonStyle())
         .onHover { isHovering = $0 }
-        .help(
-            needsReconnect ? L("Чтобы ставить лайки, переподключи Spotify — нажми, откроется браузер", "To like songs, reconnect Spotify — click to open the browser")
-                : liked ? L("Убрать из «Любимых треков» (L)", "Remove from Liked Songs (L)") : L("Добавить в «Любимые треки» (L)", "Save to Liked Songs (L)")
-        )
+        .help(help)
         .animation(.easeOut(duration: 0.15), value: liked)
+    }
+
+    private var help: String {
+        if needsReconnect {
+            return L("Чтобы ставить лайки, переподключи Spotify — нажми, откроется браузер", "To like songs, reconnect Spotify — click to open the browser")
+        }
+        let liked = isLiked == true
+        switch app {
+        case .spotify:
+            return liked ? L("Убрать из «Любимых треков» (L)", "Remove from Liked Songs (L)") : L("Добавить в «Любимые треки» (L)", "Save to Liked Songs (L)")
+        case .appleMusic:
+            return liked ? L("Убрать из избранного (L)", "Remove from Favorites (L)") : L("Добавить в избранное (L)", "Add to Favorites (L)")
+        }
     }
 }
 
@@ -184,15 +197,15 @@ private struct ModeButton: View {
 }
 
 private struct ProgressSection: View {
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     let duration: Double
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
-            let position = spotify.position(at: context.date)
+            let position = player.position(at: context.date)
             VStack(spacing: 3) {
                 SeekBar(progress: duration > 0 ? position / duration : 0) { fraction in
-                    spotify.seek(to: fraction * duration)
+                    player.seek(to: fraction * duration)
                 }
                 HStack {
                     Text(formatTime(position))

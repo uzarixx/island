@@ -16,7 +16,7 @@ struct ShelfView: View {
                 header
             }
             if store.items.isEmpty {
-                ShelfDropZone(isTargeted: isTargeted)
+                ShelfDropZone(isTargeted: isTargeted, paste: paste)
             } else {
                 cards
             }
@@ -56,6 +56,7 @@ struct ShelfView: View {
                 .fixedSize()
                 .help(L("Перетащи, чтобы забрать всё сразу", "Drag to take everything at once"))
             }
+            HeaderButton(icon: "doc.on.clipboard", title: L("Вставить", "Paste"), help: L("Положить на полку то, что в буфере обмена: скриншот, картинку, файлы или текст (⌘V)", "Put what's on the clipboard on the shelf: a screenshot, a picture, files or text (⌘V)"), action: paste)
             HeaderButton(icon: "square.and.arrow.up", title: "AirDrop", help: L("Отправить всё по AirDrop", "Send all via AirDrop")) {
                 store.airDrop()
             }
@@ -103,13 +104,20 @@ struct ShelfView: View {
         }
     }
 
-    static func icon(for item: ShelfItem) -> NSImage {
-        let name = switch item.content {
+    private func paste() {
+        if !store.paste() { NSSound.beep() }
+    }
+
+    static func symbol(for item: ShelfItem) -> String {
+        switch item.content {
         case .file: "doc"
         case .link: "link"
         case .text: "text.alignleft"
         }
-        return NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? NSImage()
+    }
+
+    static func icon(for item: ShelfItem) -> NSImage {
+        NSImage(systemSymbolName: symbol(for: item), accessibilityDescription: nil) ?? NSImage()
     }
 }
 
@@ -118,6 +126,7 @@ struct ShelfView: View {
 /// The empty shelf: one big target that comes alive while something is dragged over it.
 private struct ShelfDropZone: View {
     let isTargeted: Bool
+    let paste: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -132,6 +141,10 @@ private struct ShelfDropZone: View {
             Text(L("Потом утащишь их куда нужно: в другую папку, письмо или чат", "Then drag them wherever you need: another folder, an email or a chat"))
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.4))
+            if !isTargeted {
+                HeaderButton(icon: "doc.on.clipboard", title: L("Вставить из буфера  ⌘V", "Paste from clipboard  ⌘V"), help: L("Скриншот, картинка, файлы или текст из буфера обмена", "A screenshot, a picture, files or text from the clipboard"), action: paste)
+                    .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
@@ -317,7 +330,13 @@ private struct ShelfCard: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onTapGesture(perform: primaryAction)
-        .onDrag { store.dragProvider(for: item) }
+        .onDrag { store.dragProvider(for: item) } preview: {
+            if case .file = item.content {
+                DragPreview(image: store.thumbnails[item.id], title: title)
+            } else {
+                DragPreview(symbol: ShelfView.symbol(for: item), title: title)
+            }
+        }
         .onHover { isHovering = $0 }
         .help(help)
     }

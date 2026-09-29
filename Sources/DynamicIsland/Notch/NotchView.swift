@@ -15,7 +15,9 @@ extension EnvironmentValues {
 struct NotchView: View {
     @ObservedObject var viewModel: NotchViewModel
     // Observed here: the live activity and the alarm take over the whole notch.
-    @ObservedObject private var spotify: SpotifyController
+    @ObservedObject private var player: PlayerController
+    /// Signing in to Spotify brings the queue and playlists next to the player.
+    @ObservedObject private var auth: SpotifyAuth
     @ObservedObject private var meetings: MeetingStore
     private let queue: QueueController
     private let library: LibraryController
@@ -32,7 +34,8 @@ struct NotchView: View {
 
     init(viewModel: NotchViewModel, model: AppModel, close: @escaping () -> Void, openSettings: @escaping () -> Void) {
         self.viewModel = viewModel
-        _spotify = ObservedObject(wrappedValue: model.spotify)
+        _player = ObservedObject(wrappedValue: model.player)
+        _auth = ObservedObject(wrappedValue: model.auth)
         _meetings = ObservedObject(wrappedValue: model.meetings)
         queue = model.queue
         library = model.library
@@ -66,6 +69,10 @@ struct NotchView: View {
         .shadow(color: .black.opacity(viewModel.isExpanded ? 0.55 : 0), radius: 14, y: 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .environment(\.colorScheme, .dark)
+        // The panel takes the keyboard only when asked (it would steal typing from the app the
+        // user is in), so it's rarely key. Draw it as active anyway: inactive, Liquid Glass and
+        // controls go flat and grey until the first click.
+        .environment(\.controlActiveState, .key)
         .environment(\.closeNotch, close)
     }
 
@@ -83,7 +90,7 @@ struct NotchView: View {
                 HStack(spacing: 10) {
                     ZStack {
                         if let volume = viewModel.volumeFeedback {
-                            VolumeIndicator(volume: volume, colors: spotify.artworkColors)
+                            VolumeIndicator(volume: volume, colors: player.artworkColors)
                                 .transition(.blurred(radius: 6, scale: 0.7, anchor: .trailing))
                         }
                     }
@@ -118,7 +125,7 @@ struct NotchView: View {
                         .animation(.easeIn(duration: 0.14))
                 ))
         } else if let activity = viewModel.collapsedActivity {
-            CollapsedActivityView(activity: activity, spotify: spotify, sideWidth: viewModel.activitySideWidth)
+            CollapsedActivityView(activity: activity, player: player, sideWidth: viewModel.activitySideWidth)
                 // One activity replacing another (a charging flash over the music) blurs into it
                 // while the shape springs to the new width.
                 .id(activity.kind)
@@ -154,16 +161,22 @@ struct NotchView: View {
         }
     }
 
-    /// The music tab is two panes (player and queue); the others fill the width.
+    /// The music tab is two panes (player and queue) with Spotify connected, just the player
+    /// otherwise; the others fill the width.
     @ViewBuilder
     private var selectedTabContent: some View {
         switch viewModel.selectedTab {
         case .music:
-            HStack(spacing: 12) {
-                PlayerView(spotify: spotify)
-                    .frame(width: 300)
-                separator
-                MusicBrowserView(queue: queue, library: library, spotify: spotify, isEditing: $viewModel.isEditing, openSettings: openSettings)
+            if player.hasLibrary {
+                HStack(spacing: 12) {
+                    PlayerView(player: player)
+                        .frame(width: 300)
+                    separator
+                    MusicBrowserView(queue: queue, library: library, player: player, isEditing: $viewModel.isEditing, openSettings: openSettings)
+                }
+            } else {
+                PlayerView(player: player, isWide: true)
+                    .frame(maxWidth: 480)
             }
         case .shelf:
             ShelfView(store: shelf, selection: viewModel.keyboardSelection)

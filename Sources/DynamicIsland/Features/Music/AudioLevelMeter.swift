@@ -3,20 +3,21 @@ import CoreAudio
 import Foundation
 import os
 
-/// Spotify's sound split into frequency bands for the equalizer. Listens to Spotify alone through
+/// The music app's sound split into frequency bands for the equalizer. Listens to that app alone through
 /// a Core Audio process tap (macOS 14.2+); nothing is recorded or kept. Only with the setting on
 /// (see `AppSettings.liveEqualizerEnabled`): macOS asks for audio capture permission the first
 /// time and shows its purple recording dot while the tap runs. Without permission the tap hears
 /// silence and the equalizer keeps its made-up animation.
 ///
-/// The tap runs only while Spotify plays. Samples are analyzed on a background queue into target
+/// The tap runs only while the app plays. Samples are analyzed on a background queue into target
 /// levels; the equalizer eases toward them each frame it draws (see `levels(at:)`), so the bars
 /// move smoothly however the audio arrives, and nothing is published to SwiftUI.
 final class AudioLevelMeter: @unchecked Sendable {
     static let shared = AudioLevelMeter()
     static let bandCount = 6
 
-    private static let spotifyBundleID = "com.spotify.client"
+    /// The app whose sound is tapped (see `MusicApp`); main thread only.
+    private var bundleID = MusicApp.spotify.bundleID
 
     /// Band edges in Hz, spaced evenly on a log scale like hearing: from bass to treble.
     private static let bandEdges: [Float] = [40, 100, 250, 600, 1500, 4000, 10000]
@@ -85,8 +86,18 @@ final class AudioLevelMeter: @unchecked Sendable {
 
     // MARK: - Starting and stopping
 
-    /// Taps Spotify while it plays, if the setting is on; call from the main thread.
-    func setPlaying(_ playing: Bool) {
+    /// Taps the music app while it plays, if the setting is on; call from the main thread.
+    func setPlaying(_ playing: Bool, bundleID: String) {
+        if bundleID != self.bundleID {
+            // Another app: a running tap listens to the old one.
+            self.bundleID = bundleID
+            if isActive {
+                isActive = false
+                retryTask?.cancel()
+                retryTask = nil
+                stop()
+            }
+        }
         isPlaying = playing
         apply()
     }
@@ -105,8 +116,8 @@ final class AudioLevelMeter: @unchecked Sendable {
 
     private func start(attemptsLeft: Int) {
         guard #available(macOS 14.2, *), isActive else { return }
-        let processes = Self.spotifyProcesses()
-        // Spotify may not have opened its audio output yet right after starting to play.
+        let processes = Self.processes(of: bundleID)
+        // The app may not have opened its audio output yet right after starting to play.
         guard !processes.isEmpty, startTap(processes: processes) else {
             stop()
             guard attemptsLeft > 1 else { return }
@@ -255,11 +266,11 @@ final class AudioLevelMeter: @unchecked Sendable {
 
     // MARK: - Core Audio properties
 
-    private static func spotifyProcesses() -> [AudioObjectID] {
+    private static func processes(of bundleID: String) -> [AudioObjectID] {
         let processes: [AudioObjectID] = AudioObject.array(AudioObject.system, kAudioHardwarePropertyProcessObjectList)
         return processes.filter { process in
-            // Spotify's helpers ("com.spotify.client.helper") may be the ones playing.
-            AudioObject.string(process, kAudioProcessPropertyBundleID)?.hasPrefix(spotifyBundleID) == true
+            // The app's helpers ("com.spotify.client.helper") may be the ones playing.
+            AudioObject.string(process, kAudioProcessPropertyBundleID)?.hasPrefix(bundleID) == true
         }
     }
 

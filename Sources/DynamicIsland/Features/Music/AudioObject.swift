@@ -48,20 +48,4 @@ enum AudioObject {
             count = status == noErr ? Int(size) / MemoryLayout<T>.stride : 0
         }
     }
-
-    static func isSettable(_ object: AudioObjectID, _ address: AudioObjectPropertyAddress) -> Bool {
-        var address = address
-        var settable: DarwinBoolean = false
-        guard AudioObjectHasProperty(object, &address),
-              AudioObjectIsPropertySettable(object, &address, &settable) == noErr
-        else { return false }
-        return settable.boolValue
-    }
-
-    @discardableResult
-    static func set<T>(_ object: AudioObjectID, _ address: AudioObjectPropertyAddress, to value: T) -> Bool {
-        var address = address
-        var value = value
-        return AudioObjectSetPropertyData(object, &address, 0, nil, UInt32(MemoryLayout<T>.size), &value) == noErr
-    }
 }

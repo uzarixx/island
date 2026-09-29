@@ -3,7 +3,7 @@
 #   --run        launch it afterwards
 #   --universal  one app for Apple Silicon and Intel Macs (for sharing; slower to build)
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 RUN=false
 UNIVERSAL=false
@@ -28,12 +28,18 @@ if swift build --help 2>/dev/null | grep -q -- "--build-system"; then
     BUILD_FLAGS+=(--build-system native)
 fi
 
+# SwiftPM warns on every run that the classic build system is deprecated; nothing to do about it
+# while the new one is broken, so keep it out of the output. Everything else passes through.
+swift_build() {
+    swift build "$@" 2> >(grep -v -- "'--build-system native' has been deprecated" >&2)
+}
+
 # Builds for one architecture and prints where the binary is. The triple is always explicit:
 # .build/release points at whichever was built last, so it can't be trusted.
 build_arch() {
     local triple="$1-apple-macosx14.0"
-    swift build "${BUILD_FLAGS[@]}" --triple "$triple" >&2
-    echo "$(swift build "${BUILD_FLAGS[@]}" --triple "$triple" --show-bin-path)/DynamicIsland"
+    swift_build "${BUILD_FLAGS[@]}" --triple "$triple" >&2
+    echo "$(swift_build "${BUILD_FLAGS[@]}" --triple "$triple" --show-bin-path)/DynamicIsland"
 }
 
 if $UNIVERSAL; then

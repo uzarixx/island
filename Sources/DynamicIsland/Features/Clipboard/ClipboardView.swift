@@ -210,7 +210,12 @@ private struct ClipboardCard: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onTapGesture(perform: copy)
-        .onDrag(dragProvider)
+        .onDrag(dragProvider) {
+            switch item.content {
+            case .image(let image, _, _): DragPreview(image: image)
+            case .text(let text): DragPreview(symbol: "text.alignleft", title: text.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        }
         .onHover { isHovering = $0 }
         .help(isImage ? L("Клик — скопировать, перетащи — вставить куда нужно", "Click to copy, drag to drop anywhere") : L("Клик — скопировать", "Click to copy"))
     }

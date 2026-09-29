@@ -28,6 +28,23 @@ final class AppleScriptRunner: @unchecked Sendable {
         }
     }
 
+    /// For a script whose result is data rather than text, such as a cover picture; not cached.
+    func runForData(_ source: String, targetBundleID: String) async -> Data? {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                guard !NSRunningApplication.runningApplications(withBundleIdentifier: targetBundleID).isEmpty,
+                      let script = NSAppleScript(source: source)
+                else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                var error: NSDictionary?
+                let result = script.executeAndReturnError(&error)
+                continuation.resume(returning: error == nil && !result.data.isEmpty ? result.data : nil)
+            }
+        }
+    }
+
     private func execute(_ source: String, cache: Bool) -> Outcome {
         let script: NSAppleScript
         if let cached = compiled[source] {

@@ -20,7 +20,12 @@ final class NotchPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
     }
 
-    override var canBecomeKey: Bool { true }
+    /// Only the open notch takes the keyboard. When the panel gives it away, AppKit looks for
+    /// another window of ours to make key; a collapsed notch that accepted would keep swallowing
+    /// every key press (with an error beep) in the app the user went back to.
+    var allowsKey = false
+
+    override var canBecomeKey: Bool { allowsKey }
     override var canBecomeMain: Bool { false }
 
     /// The app never becomes active while typing in the notch, so the Edit menu's shortcuts

@@ -5,14 +5,15 @@ import Carbon.HIToolbox
 /// the same with a Russian layout ("L" is the key labelled Д too).
 ///
 /// Everywhere: digits or ⌘-digits switch tabs, ⇥ / ⇧⇥ go to the next / previous one, Esc closes.
-/// Music: space plays/pauses, ← → change the track, ↑ ↓ the volume, L likes the track, / searches.
+/// Music: space plays/pauses, ← → change the track, ↑ ↓ the volume, L likes the track, / searches
+/// (with Spotify connected).
 /// Chats, links, clipboard: ← → pick, ↩ opens / copies, N adds; ⌫ removes from the clipboard.
 /// Meetings: ↑ ↓ pick, ↩ joins, N adds.
-/// Shelf: ← → pick, space previews with Quick Look, ↩ opens, ⌫ takes off the shelf.
+/// Shelf: ← → pick, space previews with Quick Look, ↩ opens, ⌫ takes off the shelf, ⌘V pastes.
 @MainActor
 final class NotchKeyboard {
     private let viewModel: NotchViewModel
-    private let spotify: SpotifyController
+    private let player: PlayerController
     private let chats: ChatStore
     private let links: LinkStore
     private let meetings: MeetingStore
@@ -24,7 +25,7 @@ final class NotchKeyboard {
 
     init(
         viewModel: NotchViewModel,
-        spotify: SpotifyController,
+        player: PlayerController,
         chats: ChatStore,
         links: LinkStore,
         meetings: MeetingStore,
@@ -33,7 +34,7 @@ final class NotchKeyboard {
         close: @escaping () -> Void
     ) {
         self.viewModel = viewModel
-        self.spotify = spotify
+        self.player = player
         self.chats = chats
         self.links = links
         self.meetings = meetings
@@ -71,6 +72,12 @@ final class NotchKeyboard {
             return false
         }
 
+        // Outside a text field ⌘V has nothing to paste into; on the shelf it takes the clipboard.
+        if modifiers == .command, key == kVK_ANSI_V, viewModel.selectedTab == .shelf {
+            if !shelf.paste() { NSSound.beep() }
+            return true
+        }
+
         if key == kVK_Tab, modifiers.isSubset(of: .shift) {
             cycleTab(by: modifiers.contains(.shift) ? -1 : 1)
             return true
@@ -100,13 +107,13 @@ final class NotchKeyboard {
 
     private func handleMusic(_ key: Int) -> Bool {
         switch key {
-        case kVK_Space: spotify.playPause()
-        case kVK_LeftArrow: spotify.previousTrack()
-        case kVK_RightArrow: spotify.nextTrack()
-        case kVK_UpArrow: spotify.setVolume(spotify.volume + 10)
-        case kVK_DownArrow: spotify.setVolume(spotify.volume - 10)
-        case kVK_ANSI_L: spotify.toggleLike()
-        case kVK_ANSI_Slash:
+        case kVK_Space: player.playPause()
+        case kVK_LeftArrow: player.previousTrack()
+        case kVK_RightArrow: player.nextTrack()
+        case kVK_UpArrow: player.setVolume(player.volume + 10)
+        case kVK_DownArrow: player.setVolume(player.volume - 10)
+        case kVK_ANSI_L: player.toggleLike()
+        case kVK_ANSI_Slash where player.hasLibrary:
             // The search pane focuses its field once the notch takes typing.
             UserDefaults.standard.set(MusicPane.search.rawValue, forKey: MusicPane.defaultsKey)
             DispatchQueue.main.async { self.viewModel.isEditing = true }

@@ -36,4 +36,4 @@ openssl pkcs12 -export $LEGACY -inkey "$WORK/key.pem" -in "$WORK/cert.pem" -name
 # -T: codesign may use the key without asking every time.
 security import "$WORK/identity.p12" -k "$HOME/Library/Keychains/login.keychain-db" -P "$PASS" -T /usr/bin/codesign
 
-echo "Created \"$NAME\". Rebuild with ./build.sh, then grant the permissions once more."
+echo "Created \"$NAME\". Rebuild with scripts/build.sh, then grant the permissions once more."

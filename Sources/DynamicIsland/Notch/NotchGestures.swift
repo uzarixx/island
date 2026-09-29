@@ -4,7 +4,7 @@ import AppKit
 /// up / down changes the volume, a sideways swipe skips to the next or previous track.
 @MainActor
 final class NotchGestures {
-    private let spotify: SpotifyController
+    private let player: PlayerController
     private let showVolume: (Int) -> Void
 
     private enum Axis {
@@ -21,14 +21,14 @@ final class NotchGestures {
     private static let volumeStepDistance: CGFloat = 3
     private static let swipeDistance: CGFloat = 60
 
-    init(spotify: SpotifyController, showVolume: @escaping (Int) -> Void) {
-        self.spotify = spotify
+    init(player: PlayerController, showVolume: @escaping (Int) -> Void) {
+        self.player = player
         self.showVolume = showVolume
     }
 
     /// There's something to control.
     var isAvailable: Bool {
-        AppSettings.cameraGesturesEnabled && spotify.isRunning && spotify.track != nil
+        AppSettings.cameraGesturesEnabled && player.isRunning && player.track != nil
     }
 
     /// Returns true if the event was taken as a gesture.
@@ -70,7 +70,7 @@ final class NotchGestures {
             if !didSwipe, abs(horizontal) > Self.swipeDistance {
                 didSwipe = true
                 // Swiping left moves on, like flicking a card away.
-                if horizontal > 0 { spotify.nextTrack() } else { spotify.previousTrack() }
+                if horizontal > 0 { player.nextTrack() } else { player.previousTrack() }
             }
         case .vertical:
             let steps = Int(vertical / Self.volumeStepDistance)
@@ -83,7 +83,7 @@ final class NotchGestures {
     }
 
     private func changeVolume(by step: Int) {
-        spotify.setVolume(spotify.volume + step)
-        showVolume(spotify.volume)
+        player.setVolume(player.volume + step)
+        showVolume(player.volume)
     }
 }

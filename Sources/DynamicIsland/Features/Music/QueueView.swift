@@ -4,7 +4,7 @@ import SwiftUI
 struct QueueView: View {
     @ObservedObject var queue: QueueController
     @ObservedObject var auth: SpotifyAuth
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     let openSettings: () -> Void
 
     var body: some View {
@@ -24,7 +24,7 @@ struct QueueView: View {
                                     SectionTitle(L("Далее в очереди", "Next in queue"))
                                         .padding(.top, 4)
                                 }
-                                QueueRow(track: item, isPlaying: spotify.isPlaying, colors: spotify.artworkColors) {
+                                QueueRow(track: item, isPlaying: player.isPlaying, colors: player.artworkColors) {
                                     queue.play(item)
                                 }
                                 .id(item.id)
@@ -39,7 +39,7 @@ struct QueueView: View {
                     }
                     .scrollIndicators(.never)
                     // A new track starts at the top of the list.
-                    .onChange(of: spotify.track?.id) {
+                    .onChange(of: player.track?.id) {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo(QueueController.currentID, anchor: .top)
                         }

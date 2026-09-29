@@ -18,7 +18,7 @@ enum MusicPane: String, CaseIterable {
 struct MusicBrowserView: View {
     @ObservedObject var queue: QueueController
     @ObservedObject var library: LibraryController
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     /// Shared with the notch: typing in a search field keeps it open and takes the keyboard.
     @Binding var isEditing: Bool
     let openSettings: () -> Void
@@ -32,11 +32,11 @@ struct MusicBrowserView: View {
 
             switch pane {
             case .queue:
-                QueueView(queue: queue, auth: queue.auth, spotify: spotify, openSettings: openSettings)
+                QueueView(queue: queue, auth: queue.auth, player: player, openSettings: openSettings)
             case .playlists:
-                PlaylistsPane(library: library, auth: library.auth, spotify: spotify, isEditing: $isEditing, openSettings: openSettings)
+                PlaylistsPane(library: library, auth: library.auth, player: player, isEditing: $isEditing, openSettings: openSettings)
             case .search:
-                SearchPane(library: library, auth: library.auth, spotify: spotify, isEditing: $isEditing, openSettings: openSettings) { playlist in
+                SearchPane(library: library, auth: library.auth, player: player, isEditing: $isEditing, openSettings: openSettings) { playlist in
                     library.open(playlist)
                     pane = .playlists
                 }
@@ -61,7 +61,7 @@ struct MusicBrowserView: View {
 private struct PlaylistsPane: View {
     @ObservedObject var library: LibraryController
     @ObservedObject var auth: SpotifyAuth
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     @Binding var isEditing: Bool
     let openSettings: () -> Void
 
@@ -78,7 +78,7 @@ private struct PlaylistsPane: View {
             if let problem = AccessProblem(auth: auth, needsPlaylists: true) {
                 AccessProblemView(problem: problem, auth: auth, openSettings: openSettings)
             } else if let playlist = library.openedPlaylist {
-                PlaylistDetail(playlist: playlist, library: library, spotify: spotify, isEditing: $isEditing)
+                PlaylistDetail(playlist: playlist, library: library, player: player, isEditing: $isEditing)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             } else {
                 VStack(spacing: 6) {
@@ -95,7 +95,9 @@ private struct PlaylistsPane: View {
     @ViewBuilder
     private var content: some View {
         switch library.playlistsState {
-        case .idle, .loading where library.playlists.isEmpty:
+        case .idle:
+            ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .loading where library.playlists.isEmpty:
             ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message) where library.playlists.isEmpty:
             MessageView(icon: "exclamationmark.triangle", text: message, action: L("Повторить", "Retry"), perform: library.loadPlaylists)
@@ -113,8 +115,8 @@ private struct PlaylistsPane: View {
                             LibraryRow(
                                 item: item,
                                 isPlayingContext: library.playingContext == item.uri,
-                                isPlaying: spotify.isPlaying,
-                                colors: spotify.artworkColors,
+                                isPlaying: player.isPlaying,
+                                colors: player.artworkColors,
                                 play: { library.play(item) },
                                 open: { withAnimation(.spring(duration: 0.35)) { library.open(item) } }
                             )
@@ -131,7 +133,7 @@ private struct PlaylistsPane: View {
 private struct PlaylistDetail: View {
     let playlist: LibraryItem
     @ObservedObject var library: LibraryController
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     @Binding var isEditing: Bool
 
     @State private var filter = ""
@@ -225,9 +227,9 @@ private struct PlaylistDetail: View {
                     ForEach(tracks) { track in
                         LibraryRow(
                             item: track,
-                            isPlayingContext: spotify.track?.id == track.uri && library.playingContext == playlist.uri,
-                            isPlaying: spotify.isPlaying,
-                            colors: spotify.artworkColors,
+                            isPlayingContext: player.track?.id == track.uri && library.playingContext == playlist.uri,
+                            isPlaying: player.isPlaying,
+                            colors: player.artworkColors,
                             play: { library.playTrack(track) },
                             addToQueue: { library.addToQueue(track) }
                         )
@@ -252,7 +254,7 @@ private struct PlaylistDetail: View {
 private struct SearchPane: View {
     @ObservedObject var library: LibraryController
     @ObservedObject var auth: SpotifyAuth
-    @ObservedObject var spotify: SpotifyController
+    @ObservedObject var player: PlayerController
     @Binding var isEditing: Bool
     let openSettings: () -> Void
     let openPlaylist: (LibraryItem) -> Void
@@ -323,9 +325,9 @@ private struct SearchPane: View {
             ForEach(items) { item in
                 LibraryRow(
                     item: item,
-                    isPlayingContext: library.playingContext == item.uri || spotify.track?.id == item.uri,
-                    isPlaying: spotify.isPlaying,
-                    colors: spotify.artworkColors,
+                    isPlayingContext: library.playingContext == item.uri || player.track?.id == item.uri,
+                    isPlaying: player.isPlaying,
+                    colors: player.artworkColors,
                     play: { library.play(item) },
                     open: item.kind == .playlist ? { openPlaylist(item) } : nil,
                     addToQueue: item.kind == .track ? { library.addToQueue(item) } : nil

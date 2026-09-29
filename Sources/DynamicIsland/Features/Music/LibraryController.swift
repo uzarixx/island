@@ -26,7 +26,7 @@ struct LibraryItem: Identifiable, Equatable {
 }
 
 /// The user's playlists and Spotify search, via the Web API. Playing goes through
-/// `SpotifyController` (AppleScript), which works without Premium.
+/// `PlayerController` (AppleScript), which works without Premium.
 @MainActor
 final class LibraryController: ObservableObject {
     enum State: Equatable {
@@ -62,16 +62,16 @@ final class LibraryController: ObservableObject {
     }
 
     let auth: SpotifyAuth
-    private let spotify: SpotifyController
+    private let player: PlayerController
     private let api: SpotifyWebAPI
     private var searchTask: Task<Void, Never>?
     private var noticeTask: Task<Void, Never>?
     private var playlistsLoadedAt: Date?
     private var cancellables = Set<AnyCancellable>()
 
-    init(auth: SpotifyAuth, spotify: SpotifyController) {
+    init(auth: SpotifyAuth, player: PlayerController) {
         self.auth = auth
-        self.spotify = spotify
+        self.player = player
         api = SpotifyWebAPI(auth: auth)
 
         auth.$isSignedIn
@@ -85,7 +85,7 @@ final class LibraryController: ObservableObject {
             .store(in: &cancellables)
 
         // A new track may come from a different playlist.
-        spotify.$track
+        player.$track
             .map { $0?.id }
             .removeDuplicates()
             .sink { [weak self] _ in self?.refreshPlayingContext() }
@@ -195,7 +195,7 @@ final class LibraryController: ObservableObject {
     /// Plays a song of the opened playlist; the playlist goes on after it.
     func playTrack(_ track: LibraryItem) {
         guard let playlist = openedPlaylist, track.isPlayable else { return }
-        spotify.play(track.uri, context: playlist.uri)
+        player.play(track.uri, context: playlist.uri)
         playingContext = playlist.uri
     }
 
@@ -227,7 +227,7 @@ final class LibraryController: ObservableObject {
     // MARK: - Playing
 
     func play(_ item: LibraryItem) {
-        spotify.play(item.uri, context: item.context)
+        player.play(item.uri, context: item.context)
         if item.kind != .track { playingContext = item.uri }
         // Spotify reports the new context once playback has switched.
         Task {

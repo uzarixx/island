@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>ru</string>
+    </array>
+    <key>CFBundleName</key>
+    <string>Island</string>
+    <key>CFBundleDisplayName</key>
+    <string>Island</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.andrei.dynamicisland</string>
+    <key>CFBundleExecutable</key>
+    <string>DynamicIsland</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.andrei.dynamicisland.tile</string>
+            <key>UTTypeDescription</key>
+            <string>Island tile</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+            </array>
+        </dict>
+    </array>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Used for voice notes.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>Lets the equalizer on the island move to the music playing in Spotify. Nothing is recorded.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Shows meetings from Calendar and reminds you about them. Events are only read and never leave your Mac.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Shows meetings from Calendar and reminds you about them. Events are only read and never leave your Mac.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Used to control playback in Spotify.</string>
+</dict>
+</plist>

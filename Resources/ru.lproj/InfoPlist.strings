@@ -1,0 +1,7 @@
+/* Permission prompts shown by macOS. */
+
+"NSMicrophoneUsageDescription" = "Нужно для голосовых заметок.";
+"NSAudioCaptureUsageDescription" = "Нужно, чтобы эквалайзер на острове двигался в такт музыке из Spotify. Звук никуда не записывается.";
+"NSCalendarsFullAccessUsageDescription" = "Нужно, чтобы показывать созвоны из Календаря и напоминать о них. События только читаются и никуда не отправляются.";
+"NSCalendarsUsageDescription" = "Нужно, чтобы показывать созвоны из Календаря и напоминать о них. События только читаются и никуда не отправляются.";
+"NSAppleEventsUsageDescription" = "Нужно для управления воспроизведением в Spotify.";
